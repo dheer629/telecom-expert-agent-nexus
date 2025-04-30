@@ -4,6 +4,7 @@ import { AppState, ChatMessage, OperationMode, User } from '@/types';
 
 interface AppContextProps extends AppState {
   addMessage: (message: ChatMessage) => void;
+  updateLastMessage: (content: string) => void;
   setAuthenticated: (value: boolean) => void;
   setUser: (user: User | null) => void;
   addDocChunk: (chunk: string) => void;
@@ -55,6 +56,28 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       chatHistory: [...prev.chatHistory, message],
     }));
   };
+  
+  const updateLastMessage = (content: string) => {
+    setState((prev) => {
+      if (prev.chatHistory.length === 0) return prev;
+      
+      const updatedHistory = [...prev.chatHistory];
+      const lastIndex = updatedHistory.length - 1;
+      
+      // Only update if the last message is from the assistant
+      if (updatedHistory[lastIndex].role === 'assistant') {
+        updatedHistory[lastIndex] = {
+          ...updatedHistory[lastIndex],
+          content: content,
+        };
+      }
+      
+      return {
+        ...prev,
+        chatHistory: updatedHistory,
+      };
+    });
+  };
 
   const setAuthenticated = (value: boolean) => {
     setState((prev) => ({
@@ -103,6 +126,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       value={{
         ...state,
         addMessage,
+        updateLastMessage,
         setAuthenticated,
         setUser,
         addDocChunk,

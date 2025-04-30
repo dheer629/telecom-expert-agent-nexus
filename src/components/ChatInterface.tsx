@@ -16,7 +16,7 @@ const ChatInterface = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [searchEnabled, setSearchEnabled] = useState(false);
   const messageEndRef = useRef<HTMLDivElement>(null);
-  const { chatHistory, addMessage } = useApp();
+  const { chatHistory, addMessage, updateLastMessage, chatDocs } = useApp();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -34,18 +34,21 @@ const ChatInterface = () => {
     const updateAssistantResponse = (text: string) => {
       currentText = text;
       // Update the last message in chat history which is the assistant's response
-      const assistantMessage = createAssistantMessage(text);
-      addMessage(assistantMessage);
+      updateLastMessage(text);
     };
     
     // Add empty assistant message to show typing indicator
     addMessage(createAssistantMessage(''));
     
-    // Simulate typing effect
+    // Simulate typing effect with document context
+    const documentContext = chatDocs.length > 0 
+      ? "Based on the documents you've provided, " 
+      : "";
+    
     const sampleResponses = [
-      "Based on the telecom architecture principles, I would recommend implementing a distributed core network with edge computing capabilities. This approach significantly reduces latency for IoT applications while maintaining high reliability.",
-      "The 5G network slicing technology you're asking about allows operators to create multiple virtual networks over a shared physical infrastructure. Each slice can be optimized for specific use cases with different performance requirements.",
-      "In telecom network planning, the key considerations should include capacity forecasting, coverage optimization, and interference management. I'd suggest starting with a detailed RF survey to understand the propagation characteristics in your deployment area."
+      documentContext + "I would recommend implementing a distributed core network with edge computing capabilities. This approach significantly reduces latency for IoT applications while maintaining high reliability.",
+      documentContext + "The 5G network slicing technology you're asking about allows operators to create multiple virtual networks over a shared physical infrastructure. Each slice can be optimized for specific use cases with different performance requirements.",
+      documentContext + "In telecom network planning, the key considerations should include capacity forecasting, coverage optimization, and interference management. I'd suggest starting with a detailed RF survey to understand the propagation characteristics in your deployment area."
     ];
     
     const randomResponse = sampleResponses[Math.floor(Math.random() * sampleResponses.length)];
@@ -87,16 +90,20 @@ const ChatInterface = () => {
       .find(msg => msg.role === 'assistant');
       
     if (lastAssistantMessage) {
-      const continuationText = "Additionally, it's important to consider the scalability aspects of your telecom infrastructure. As user demand grows, your network should be able to adapt without significant reconfiguration. Modern telecom architectures employ virtualized network functions (VNFs) that can be scaled horizontally as needed.";
+      // Add empty assistant message to show typing indicator
+      addMessage(createAssistantMessage(''));
+      
+      const documentContext = chatDocs.length > 0 
+        ? "Additionally, based on your uploaded documents, " 
+        : "Additionally, ";
+        
+      const continuationText = documentContext + "it's important to consider the scalability aspects of your telecom infrastructure. As user demand grows, your network should be able to adapt without significant reconfiguration. Modern telecom architectures employ virtualized network functions (VNFs) that can be scaled horizontally as needed.";
       
       let currentText = '';
       const updateAssistantResponse = (text: string) => {
         currentText = text;
-        addMessage(createAssistantMessage(text));
+        updateLastMessage(text);
       };
-      
-      // Add empty assistant message to show typing indicator
-      addMessage(createAssistantMessage(''));
       
       await simulateTyping(continuationText, updateAssistantResponse, 10);
     }
