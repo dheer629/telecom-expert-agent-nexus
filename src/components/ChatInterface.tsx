@@ -27,6 +27,111 @@ const ChatInterface = () => {
     messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  const findRelevantDocumentContent = (query: string) => {
+    if (chatDocs.length === 0) return null;
+    
+    // Convert query to lowercase and remove common words
+    const queryWords = query.toLowerCase()
+      .split(/\s+/)
+      .filter(word => 
+        word.length > 3 && 
+        !['what', 'where', 'when', 'how', 'why', 'which', 'and', 'that', 'this', 'with'].includes(word)
+      );
+    
+    console.log("Searching for keywords:", queryWords);
+    
+    // Keywords specific to telecom domain
+    const telecomKeywords = [
+      'network', 'latency', 'bandwidth', 'spectrum', 'frequency', 
+      '5g', 'fiber', 'coverage', 'capacity', 'throughput', 'core', 
+      'ran', 'edge', 'cloud', 'computing', 'architecture', 'deployment', 
+      'slicing', 'mimo', 'density', 'phase', 'virtualization'
+    ];
+    
+    // Add telecom keywords found in the query
+    const searchKeywords = [
+      ...queryWords, 
+      ...telecomKeywords.filter(keyword => query.toLowerCase().includes(keyword))
+    ];
+    
+    // Look for relevant sections in documents
+    for (const doc of chatDocs) {
+      // Extract document title if available
+      const docTitle = doc.split('\n')[0];
+      
+      // Check if any keyword appears in the document
+      for (const keyword of searchKeywords) {
+        if (doc.toLowerCase().includes(keyword)) {
+          // Find the most relevant section containing the keyword
+          const docLines = doc.split('\n');
+          const relevantLines = [];
+          
+          // Find the section containing the keyword
+          let foundSection = false;
+          let sectionContent = [];
+          
+          for (let i = 0; i < docLines.length; i++) {
+            const line = docLines[i];
+            
+            // If we find a section header
+            if (line.includes('SECTION') || line.includes('SHEET')) {
+              // If we already found a relevant section, stop here
+              if (foundSection && sectionContent.length > 0) {
+                break;
+              }
+              
+              // Start a new section
+              sectionContent = [line];
+              
+              // Check if the next 5 lines contain our keyword
+              const nextLines = docLines.slice(i + 1, i + 6);
+              const nextLinesText = nextLines.join(' ').toLowerCase();
+              
+              if (nextLinesText.includes(keyword)) {
+                foundSection = true;
+                relevantLines.push(line); // Add section header
+                
+                // Add the next lines that contain relevant information
+                for (const nextLine of nextLines) {
+                  if (nextLine.trim()) {
+                    relevantLines.push(nextLine);
+                  }
+                }
+              }
+            } else if (foundSection && line.trim()) {
+              sectionContent.push(line);
+            }
+          }
+          
+          if (relevantLines.length > 0) {
+            console.log("Found relevant content for keyword:", keyword);
+            return {
+              title: docTitle,
+              content: relevantLines.join('\n'),
+              keyword: keyword
+            };
+          }
+        }
+      }
+    }
+    
+    // If no specific section was found, return the first chunk of the first document
+    if (chatDocs.length > 0) {
+      console.log("No specific relevant content found, using first document");
+      const docLines = chatDocs[0].split('\n');
+      const title = docLines[0] || "Document";
+      const previewContent = docLines.slice(0, 5).join('\n');
+      
+      return {
+        title: title,
+        content: previewContent,
+        keyword: 'general'
+      };
+    }
+    
+    return null;
+  };
+
   const generateResponse = async (userQuery: string) => {
     setIsTyping(true);
     
@@ -40,47 +145,81 @@ const ChatInterface = () => {
       updateLastMessage(text);
     };
     
+    // Find relevant document content for the query
+    const relevantDoc = findRelevantDocumentContent(userQuery);
+    
     // Prepare document context for the response
-    let documentContext = '';
-    if (chatDocs.length > 0) {
-      documentContext = "Based on the documents you've provided, ";
-      
-      // Log the document context for debugging
-      console.log(`Using ${chatDocs.length} document chunks for context`);
-      console.log(`First document chunk: ${chatDocs[0].substring(0, 100)}...`);
-    }
-    
-    // Create response options that reference documents if available
-    const sampleResponses = [
-      documentContext + "I would recommend implementing a distributed core network with edge computing capabilities. This approach significantly reduces latency for IoT applications while maintaining high reliability.",
-      documentContext + "The 5G network slicing technology you're asking about allows operators to create multiple virtual networks over a shared physical infrastructure. Each slice can be optimized for specific use cases with different performance requirements.",
-      documentContext + "In telecom network planning, the key considerations should include capacity forecasting, coverage optimization, and interference management. I'd suggest starting with a detailed RF survey to understand the propagation characteristics in your deployment area."
-    ];
-    
-    // Custom response based on document content if available
     let response = '';
-    if (chatDocs.length > 0) {
-      // Extract keywords from the user query
-      const keywords = userQuery.toLowerCase().split(/\s+/).filter(word => 
-        word.length > 3 && !['what', 'where', 'when', 'how', 'why', 'which', 'and', 'that', 'this'].includes(word)
-      );
+    
+    if (relevantDoc) {
+      console.log(`Using document reference: "${relevantDoc.title}"`);
+      console.log(`Relevant content: "${relevantDoc.content.substring(0, 100)}..."`);
       
-      // Look for relevant document content
-      let foundRelevantContent = false;
-      for (const doc of chatDocs) {
-        if (keywords.some(keyword => doc.toLowerCase().includes(keyword))) {
-          response = `Based on your uploaded documents, I can see that ${doc.substring(0, 150)}... `;
-          response += sampleResponses[Math.floor(Math.random() * sampleResponses.length)].replace(documentContext, '');
-          foundRelevantContent = true;
-          break;
+      // Build response referencing the document content
+      response = `Based on your uploaded documents in "${relevantDoc.title}", I can see important information about `;
+      
+      // Add content based on the document type
+      if (relevantDoc.title.includes('DOCX') || relevantDoc.title.includes('DOC')) {
+        if (relevantDoc.content.includes('Network Architecture')) {
+          response += `network architecture design:\n\n${relevantDoc.content}\n\nConsidering these specifications, `;
+          response += `I would recommend implementing a distributed core network with edge computing capabilities as outlined in your document. This approach significantly reduces latency (to less than 5ms as specified) for IoT applications while maintaining high reliability.`;
+        } 
+        else if (relevantDoc.content.includes('Implementation Strategy')) {
+          response += `implementation strategy:\n\n${relevantDoc.content}\n\nBased on these phases, `;
+          response += `I recommend prioritizing the core network modernization with virtualization in Phase 1, as this will establish the foundation needed for the subsequent phases. This approach ensures a smooth transition while maintaining service continuity.`;
+        }
+        else if (relevantDoc.content.includes('Technical Specifications')) {
+          response += `technical specifications:\n\n${relevantDoc.content}\n\nWith these frequency bands and capacity requirements, `;
+          response += `I recommend deploying a hybrid network architecture that leverages both mid-band (3.5 GHz) for widespread coverage and mmWave (28 GHz) for high-capacity hotspots. This combination offers the best balance of coverage and performance.`;
+        } 
+        else {
+          response += `key aspects of your telecom deployment:\n\n${relevantDoc.content}\n\nBased on this information, `;
+          response += `I would recommend focusing on the distributed network architecture with edge computing capabilities as outlined. This approach will provide the optimal balance of performance, reliability, and scalability for your use case.`;
         }
       }
-      
-      if (!foundRelevantContent) {
-        response = sampleResponses[Math.floor(Math.random() * sampleResponses.length)];
+      else if (relevantDoc.title.includes('PDF')) {
+        if (relevantDoc.content.includes('Executive Summary')) {
+          response += `the executive summary:\n\n${relevantDoc.content}\n\nBased on this overview, `;
+          response += `I recommend leveraging the geo-redundant core infrastructure to ensure the 99.999% reliability target is met. This "five nines" availability is critical for business continuity and service level agreement compliance.`;
+        }
+        else if (relevantDoc.content.includes('System Architecture')) {
+          response += `system architecture design:\n\n${relevantDoc.content}\n\nGiven these components, `;
+          response += `I recommend adopting the cloud-native approach with containerized network functions as specified. The distributed UPF design will significantly improve traffic optimization and edge performance, while the Open RAN interfaces provide valuable vendor flexibility.`;
+        }
+        else if (relevantDoc.content.includes('Performance Metrics')) {
+          response += `performance metrics:\n\n${relevantDoc.content}\n\nWith these throughput requirements in mind, `;
+          response += `I recommend implementing a robust quality of service (QoS) framework to ensure that critical applications receive appropriate prioritization. This is especially important given the high connection density of up to 1 million devices per square kilometer.`;
+        }
+        else {
+          response += `important technical details:\n\n${relevantDoc.content}\n\nConsidering these specifications, `;
+          response += `I recommend implementing a balanced architecture that addresses both performance requirements and deployment constraints. The cloud-native approach with distributed functions will provide the flexibility needed for future expansion.`;
+        }
+      }
+      else if (relevantDoc.title.includes('XLSX') || relevantDoc.title.includes('XLSM')) {
+        if (relevantDoc.content.includes('Coverage Analysis')) {
+          response += `coverage analysis:\n\n${relevantDoc.content}\n\nBased on these regional targets, `;
+          response += `I recommend prioritizing the Central Region deployment due to its high target coverage (92%) and earlier deadline (Q2 2023). This should be followed by Northern Region and finally Southern Region, aligning with their respective timelines.`;
+        }
+        else if (relevantDoc.content.includes('Capacity Planning')) {
+          response += `capacity planning requirements:\n\n${relevantDoc.content}\n\nGiven these site density guidelines, `;
+          response += `I recommend adopting a phased deployment approach, starting with critical urban areas first (5-8 sites per sq km), then expanding to suburban areas (2-4 sites per sq km), and finally addressing rural coverage (0.5-1 sites per sq km).`;
+        }
+        else if (relevantDoc.content.includes('Financial Projections')) {
+          response += `financial projections:\n\n${relevantDoc.content}\n\nBased on these figures, `;
+          response += `I recommend focusing on optimizing the Year 1 CAPEX investments to ensure they deliver maximum impact, as this represents the largest investment period. The 27% ROI over 5 years indicates a strong business case for the deployment.`;
+        }
+        else {
+          response += `important deployment metrics:\n\n${relevantDoc.content}\n\nBased on this information, `;
+          response += `I recommend creating a prioritized deployment plan that balances coverage requirements with resource constraints. The data suggests focusing on high-impact areas first to maximize return on investment while meeting coverage targets.`;
+        }
+      }
+      else {
+        response += `telecom infrastructure:\n\n${relevantDoc.content}\n\nBased on this information, `;
+        response += `I recommend implementing a structured approach that addresses the specific requirements outlined in your document. Focusing on the technical aspects mentioned will ensure a successful deployment that meets your performance objectives.`;
       }
     } else {
-      response = sampleResponses[Math.floor(Math.random() * sampleResponses.length)].replace(documentContext, '');
+      // Generic response when no relevant document content is found
+      response = "Based on general telecom best practices (as I don't see specific details in your uploaded documents), I would recommend implementing a distributed core network with edge computing capabilities. This approach significantly reduces latency for IoT applications while maintaining high reliability.";
     }
     
     await simulateTyping(response, updateAssistantResponse, 10);
@@ -124,18 +263,38 @@ const ChatInterface = () => {
       .find(msg => msg.role === 'assistant');
       
     if (lastAssistantMessage) {
-      const documentContext = chatDocs.length > 0 
-        ? "Additionally, based on your uploaded documents, " 
-        : "Additionally, ";
-        
+      // Find any referenced document in the last message
+      const docReference = lastAssistantMessage.content.match(/Based on your uploaded documents in "([^"]+)"/);
+      const docTitle = docReference ? docReference[1] : null;
+      
       let continuationText = '';
       
-      if (chatDocs.length > 0) {
-        // Use a random document chunk to continue the answer
-        const randomChunk = chatDocs[Math.floor(Math.random() * chatDocs.length)];
-        continuationText = `${documentContext}I can see that ${randomChunk.substring(0, 100)}... This aligns with best practices in the telecom industry. It's important to consider the scalability aspects of your telecom infrastructure. As user demand grows, your network should be able to adapt without significant reconfiguration.`;
+      if (docTitle && chatDocs.length > 0) {
+        // Find the matching document
+        const matchingDoc = chatDocs.find(doc => doc.includes(docTitle));
+        
+        if (matchingDoc) {
+          // Extract a different section from the document than what was used before
+          const sections = matchingDoc.split(/SECTION|SHEET/).filter(section => section.trim().length > 0);
+          
+          if (sections.length > 1) {
+            // Find a section that wasn't used in the previous response
+            const previousSection = lastAssistantMessage.content.split('\n\n')[1];
+            const unusedSection = sections.find(section => !lastAssistantMessage.content.includes(section));
+            
+            if (unusedSection) {
+              continuationText = `Additionally, your document also mentions important information about ${unusedSection.trim()}\n\nTo expand on my previous answer, this suggests that you should also consider implementing a comprehensive monitoring system to track the performance metrics outlined above. This will ensure that your network meets the specified requirements consistently across all deployment phases.`;
+            } else {
+              continuationText = `To elaborate further on the information provided in your document, I recommend implementing a phased testing approach before full-scale deployment. This would include lab testing, field trials, and limited commercial deployment to validate the architecture and identify any potential issues early in the process.`;
+            }
+          } else {
+            continuationText = `Building on my previous response, I should emphasize that proper capacity planning is crucial for the success of your telecom implementation. The document you've provided contains valuable insights that should guide your deployment strategy, particularly regarding coverage and performance targets.`;
+          }
+        } else {
+          continuationText = `To add to my previous response, it's important to note that telecom implementations should include robust security measures at every layer of the network. This includes encryption for data in transit, secure access controls, and regular vulnerability assessments to protect against emerging threats.`;
+        }
       } else {
-        continuationText = documentContext + "it's important to consider the scalability aspects of your telecom infrastructure. As user demand grows, your network should be able to adapt without significant reconfiguration. Modern telecom architectures employ virtualized network functions (VNFs) that can be scaled horizontally as needed.";
+        continuationText = `Additionally, it's worth considering that modern telecom architectures should incorporate AI-powered analytics for predictive maintenance and service assurance. This approach can significantly reduce downtime by identifying potential issues before they impact service and optimizing resource allocation based on usage patterns.`;
       }
       
       let currentText = '';
@@ -245,6 +404,15 @@ const ChatInterface = () => {
               Save Transcript
             </Button>
           </div>
+          
+          {chatDocs.length > 0 && (
+            <div className="mt-4 pt-3 border-t border-gray-100">
+              <div className="flex items-center text-xs text-telecom-secondary">
+                <FileText className="h-3 w-3 mr-1" />
+                <span>{chatDocs.length} document{chatDocs.length !== 1 ? 's' : ''} available for reference</span>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
