@@ -40,19 +40,50 @@ const ChatInterface = () => {
       updateLastMessage(text);
     };
     
-    // Simulate typing effect with document context
-    const documentContext = chatDocs.length > 0 
-      ? "Based on the documents you've provided, " 
-      : "";
+    // Prepare document context for the response
+    let documentContext = '';
+    if (chatDocs.length > 0) {
+      documentContext = "Based on the documents you've provided, ";
+      
+      // Log the document context for debugging
+      console.log(`Using ${chatDocs.length} document chunks for context`);
+      console.log(`First document chunk: ${chatDocs[0].substring(0, 100)}...`);
+    }
     
+    // Create response options that reference documents if available
     const sampleResponses = [
       documentContext + "I would recommend implementing a distributed core network with edge computing capabilities. This approach significantly reduces latency for IoT applications while maintaining high reliability.",
       documentContext + "The 5G network slicing technology you're asking about allows operators to create multiple virtual networks over a shared physical infrastructure. Each slice can be optimized for specific use cases with different performance requirements.",
       documentContext + "In telecom network planning, the key considerations should include capacity forecasting, coverage optimization, and interference management. I'd suggest starting with a detailed RF survey to understand the propagation characteristics in your deployment area."
     ];
     
-    const randomResponse = sampleResponses[Math.floor(Math.random() * sampleResponses.length)];
-    await simulateTyping(randomResponse, updateAssistantResponse, 10);
+    // Custom response based on document content if available
+    let response = '';
+    if (chatDocs.length > 0) {
+      // Extract keywords from the user query
+      const keywords = userQuery.toLowerCase().split(/\s+/).filter(word => 
+        word.length > 3 && !['what', 'where', 'when', 'how', 'why', 'which', 'and', 'that', 'this'].includes(word)
+      );
+      
+      // Look for relevant document content
+      let foundRelevantContent = false;
+      for (const doc of chatDocs) {
+        if (keywords.some(keyword => doc.toLowerCase().includes(keyword))) {
+          response = `Based on your uploaded documents, I can see that ${doc.substring(0, 150)}... `;
+          response += sampleResponses[Math.floor(Math.random() * sampleResponses.length)].replace(documentContext, '');
+          foundRelevantContent = true;
+          break;
+        }
+      }
+      
+      if (!foundRelevantContent) {
+        response = sampleResponses[Math.floor(Math.random() * sampleResponses.length)];
+      }
+    } else {
+      response = sampleResponses[Math.floor(Math.random() * sampleResponses.length)].replace(documentContext, '');
+    }
+    
+    await simulateTyping(response, updateAssistantResponse, 10);
     
     setIsTyping(false);
   };
@@ -84,20 +115,28 @@ const ChatInterface = () => {
     
     setIsTyping(true);
     
+    // Add empty assistant message to show typing indicator
+    addMessage(createAssistantMessage(''));
+    
     // Find the last assistant message
     const lastAssistantMessage = [...chatHistory]
       .reverse()
       .find(msg => msg.role === 'assistant');
       
     if (lastAssistantMessage) {
-      // Add empty assistant message to show typing indicator
-      addMessage(createAssistantMessage(''));
-      
       const documentContext = chatDocs.length > 0 
         ? "Additionally, based on your uploaded documents, " 
         : "Additionally, ";
         
-      const continuationText = documentContext + "it's important to consider the scalability aspects of your telecom infrastructure. As user demand grows, your network should be able to adapt without significant reconfiguration. Modern telecom architectures employ virtualized network functions (VNFs) that can be scaled horizontally as needed.";
+      let continuationText = '';
+      
+      if (chatDocs.length > 0) {
+        // Use a random document chunk to continue the answer
+        const randomChunk = chatDocs[Math.floor(Math.random() * chatDocs.length)];
+        continuationText = `${documentContext}I can see that ${randomChunk.substring(0, 100)}... This aligns with best practices in the telecom industry. It's important to consider the scalability aspects of your telecom infrastructure. As user demand grows, your network should be able to adapt without significant reconfiguration.`;
+      } else {
+        continuationText = documentContext + "it's important to consider the scalability aspects of your telecom infrastructure. As user demand grows, your network should be able to adapt without significant reconfiguration. Modern telecom architectures employ virtualized network functions (VNFs) that can be scaled horizontally as needed.";
+      }
       
       let currentText = '';
       const updateAssistantResponse = (text: string) => {

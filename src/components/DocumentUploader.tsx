@@ -56,18 +56,29 @@ const DocumentUploader = () => {
           await new Promise(r => setTimeout(r, 100)); // Small delay for visual effect
         }
         
-        // In a real app, this would process and store the file
-        // For this demo, we'll just extract text from text files
+        // Process the file based on its type
         const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
         
+        // Extract text from the file
+        let extractedText = '';
+        
         if (fileExtension === 'txt') {
-          const text = await extractTextFromFile(file);
-          addDocChunk(text);
+          extractedText = await extractTextFromFile(file);
         } else {
-          // For other file types, we'll just simulate success
+          // For non-text files, we'll show a message
           console.log(`Processing file: ${file.name}`);
-          // Add mock text to demonstrate that documents are used as references
-          addDocChunk(`Document content from ${file.name} would be used as reference here.`);
+          extractedText = `Document content extracted from ${file.name}:\n\n`;
+          
+          // Generate some placeholder content based on the filename
+          // In a real app, you would use proper document parsing libraries
+          extractedText += `This is simulated content from ${file.name} that would be extracted using appropriate document parsing libraries.\n\n`;
+          extractedText += `The file type is ${fileExtension.toUpperCase()} and would contain structured or unstructured data that is relevant to telecom domain questions.`;
+        }
+        
+        // Add the extracted text to the context
+        if (extractedText) {
+          console.log(`Adding content from ${file.name} to context`);
+          addDocChunk(extractedText);
         }
         
         // Add to processed attachments
