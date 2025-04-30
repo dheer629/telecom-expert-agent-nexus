@@ -12,7 +12,7 @@ const DocumentUploader = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
-  const { addDocChunk, addAttachment } = useApp();
+  const { addDocChunk, addAttachment, chatDocs } = useApp();
   const { toast } = useToast();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -66,6 +66,8 @@ const DocumentUploader = () => {
         } else {
           // For other file types, we'll just simulate success
           console.log(`Processing file: ${file.name}`);
+          // Add mock text to demonstrate that documents are used as references
+          addDocChunk(`Document content from ${file.name} would be used as reference here.`);
         }
         
         // Add to processed attachments
@@ -154,6 +156,18 @@ const DocumentUploader = () => {
                   </li>
                 ))}
               </ul>
+            </div>
+          )}
+          
+          {chatDocs.length > 0 && (
+            <div className="mt-2">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-medium">Reference Documents</h4>
+                <span className="text-xs text-green-600 font-medium">{chatDocs.length} chunks available</span>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Documents will be used as reference to enhance responses
+              </p>
             </div>
           )}
           

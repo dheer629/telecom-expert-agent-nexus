@@ -30,15 +30,15 @@ const ChatInterface = () => {
   const generateResponse = async (userQuery: string) => {
     setIsTyping(true);
     
+    // Add empty assistant message to show typing indicator
+    addMessage(createAssistantMessage(''));
+    
     let currentText = '';
     const updateAssistantResponse = (text: string) => {
       currentText = text;
       // Update the last message in chat history which is the assistant's response
       updateLastMessage(text);
     };
-    
-    // Add empty assistant message to show typing indicator
-    addMessage(createAssistantMessage(''));
     
     // Simulate typing effect with document context
     const documentContext = chatDocs.length > 0 
