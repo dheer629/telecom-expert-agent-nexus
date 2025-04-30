@@ -66,18 +66,16 @@ export const simulateTyping = (
   return new Promise((resolve) => {
     let currentText = '';
     const characters = text.split('');
-    let index = 0;
     
     const interval = setInterval(() => {
-      if (index >= characters.length) {
+      if (characters.length === 0) {
         clearInterval(interval);
         resolve();
         return;
       }
       
-      currentText += characters[index];
+      currentText += characters.shift();
       onUpdate(currentText);
-      index++;
     }, delay);
   });
 };

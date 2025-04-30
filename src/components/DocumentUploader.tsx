@@ -12,7 +12,7 @@ const DocumentUploader = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
-  const { addDocChunk, addAttachment, chatDocs } = useApp();
+  const { addDocChunk, addAttachment } = useApp();
   const { toast } = useToast();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -56,83 +56,16 @@ const DocumentUploader = () => {
           await new Promise(r => setTimeout(r, 100)); // Small delay for visual effect
         }
         
-        // Process the file based on its type
+        // In a real app, this would process and store the file
+        // For this demo, we'll just extract text from text files
         const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
         
-        // Extract text from the file
-        let extractedText = '';
-        
         if (fileExtension === 'txt') {
-          extractedText = await extractTextFromFile(file);
+          const text = await extractTextFromFile(file);
+          addDocChunk(text);
         } else {
+          // For other file types, we'll just simulate success
           console.log(`Processing file: ${file.name}`);
-          
-          // Generate more meaningful content based on document type
-          if (fileExtension === 'docx' || fileExtension === 'doc') {
-            // For Word documents, create more specific telecom-related content
-            extractedText = `DOCUMENT: ${file.name}\n\n`;
-            extractedText += `SECTION 1: Network Architecture\n`;
-            extractedText += `The proposed 5G network architecture includes a distributed RAN configuration with edge computing capabilities. Key features include:\n`;
-            extractedText += `- Low latency performance (< 5ms) for IoT applications\n`;
-            extractedText += `- Network slicing implementation for service differentiation\n`;
-            extractedText += `- AI-powered resource allocation for dynamic traffic management\n\n`;
-            
-            extractedText += `SECTION 2: Implementation Strategy\n`;
-            extractedText += `Phase 1: Core network modernization with virtualization\n`;
-            extractedText += `Phase 2: Edge computing deployment at 12 metropolitan locations\n`;
-            extractedText += `Phase 3: RAN upgrade with Massive MIMO support\n\n`;
-            
-            extractedText += `SECTION 3: Technical Specifications\n`;
-            extractedText += `- Frequency bands: 3.5 GHz (n78), 28 GHz (n257)\n`;
-            extractedText += `- Bandwidth: 100 MHz (sub-6) and 400 MHz (mmWave)\n`;
-            extractedText += `- Capacity: Supporting up to 1M devices per square km\n`;
-          } else if (fileExtension === 'pdf') {
-            // For PDF documents
-            extractedText = `DOCUMENT: ${file.name}\n\n`;
-            extractedText += `SECTION 1: Executive Summary\n`;
-            extractedText += `This technical proposal outlines a comprehensive approach to deploying a converged fixed-mobile network with 5G capabilities. The solution offers 99.999% reliability with geo-redundant core infrastructure.\n\n`;
-            
-            extractedText += `SECTION 2: System Architecture\n`;
-            extractedText += `The proposed architecture employs a cloud-native approach with containerized network functions. Key components include:\n`;
-            extractedText += `- Distributed UPF (User Plane Function) for traffic optimization\n`;
-            extractedText += `- Centralized control plane for simplified management\n`;
-            extractedText += `- Open RAN interfaces for vendor flexibility\n\n`;
-            
-            extractedText += `SECTION 3: Performance Metrics\n`;
-            extractedText += `- Downlink throughput: 1-2 Gbps (typical), 20 Gbps (peak)\n`;
-            extractedText += `- Uplink throughput: 100-300 Mbps (typical), 10 Gbps (peak)\n`;
-            extractedText += `- Connection density: Up to 1 million devices per square km\n`;
-          } else if (fileExtension === 'xlsx' || fileExtension === 'xlsm') {
-            // For Excel documents
-            extractedText = `DOCUMENT: ${file.name}\n\n`;
-            extractedText += `SHEET 1: Coverage Analysis\n`;
-            extractedText += `Market penetration targets by region:\n`;
-            extractedText += `- Northern Region: 87% population coverage by Q3 2023\n`;
-            extractedText += `- Central Region: 92% population coverage by Q2 2023\n`;
-            extractedText += `- Southern Region: 75% population coverage by Q4 2023\n\n`;
-            
-            extractedText += `SHEET 2: Capacity Planning\n`;
-            extractedText += `Site density requirements:\n`;
-            extractedText += `- Urban areas: 5-8 sites per square km\n`;
-            extractedText += `- Suburban areas: 2-4 sites per square km\n`;
-            extractedText += `- Rural areas: 0.5-1 sites per square km\n\n`;
-            
-            extractedText += `SHEET 3: Financial Projections\n`;
-            extractedText += `- CAPEX: $120M (Year 1), $85M (Year 2), $45M (Year 3)\n`;
-            extractedText += `- OPEX: $35M (Year 1), $42M (Year 2), $48M (Year 3)\n`;
-            extractedText += `- ROI: 18% (3-year horizon), 27% (5-year horizon)\n`;
-          } else {
-            // For other document types
-            extractedText = `Document content extracted from ${file.name}:\n\n`;
-            extractedText += `This is simulated content from ${file.name} that would be extracted using appropriate document parsing libraries.\n\n`;
-            extractedText += `The file type is ${fileExtension.toUpperCase()} and would contain structured or unstructured data that is relevant to telecom domain questions.`;
-          }
-        }
-        
-        // Add the extracted text to the context
-        if (extractedText) {
-          console.log(`Adding content from ${file.name} to context`);
-          addDocChunk(extractedText);
         }
         
         // Add to processed attachments
@@ -221,22 +154,6 @@ const DocumentUploader = () => {
                   </li>
                 ))}
               </ul>
-            </div>
-          )}
-          
-          {chatDocs.length > 0 && (
-            <div className="mt-2">
-              <div className="flex items-center justify-between">
-                <h4 className="text-sm font-medium">Reference Documents</h4>
-                <span className="text-xs text-green-600 font-medium">{chatDocs.length} chunks available</span>
-              </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Documents will be used as reference to enhance responses
-              </p>
-              <div className="mt-2 text-xs text-gray-600 bg-gray-50 p-2 rounded max-h-24 overflow-y-auto">
-                <strong>Document content example:</strong>
-                <p className="truncate">{chatDocs.length > 0 ? chatDocs[0].substring(0, 100) + '...' : 'No documents available'}</p>
-              </div>
             </div>
           )}
           
