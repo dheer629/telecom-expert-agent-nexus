@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,7 +62,14 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
-				}
+				},
+                telecom: {
+                    primary: '#00aaff',
+                    secondary: '#0077cc',
+                    light: '#e6f7ff',
+                    dark: '#004477',
+                    accent: '#ff5500'
+                }
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
@@ -84,12 +92,33 @@ export default {
 					to: {
 						height: '0'
 					}
-				}
+				},
+                'fade-in': {
+                    '0%': {
+                        opacity: '0'
+                    },
+                    '100%': {
+                        opacity: '1'
+                    }
+                },
+                'typing': {
+                    '0%': {
+                        width: '0%'
+                    },
+                    '100%': {
+                        width: '100%'
+                    }
+                }
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
-			}
+				'accordion-up': 'accordion-up 0.2s ease-out',
+                'fade-in': 'fade-in 0.5s ease-out',
+                'typing': 'typing 1s ease-out'
+			},
+            backgroundImage: {
+                'gradient-telecom': 'linear-gradient(135deg, #00aaff, #0077cc)'
+            }
 		}
 	},
 	plugins: [require("tailwindcss-animate")],
