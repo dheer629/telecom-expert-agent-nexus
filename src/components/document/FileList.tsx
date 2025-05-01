@@ -1,8 +1,9 @@
 
 import FileItem from './FileItem';
+import { DocumentFile, ProcessingStatus } from '@/types/DocumentTypes';
 
 interface FileListProps {
-  files: File[];
+  files: DocumentFile[];
   uploadProgress: Record<string, number>;
   isUploading: boolean;
   onRemoveFile: (index: number) => void;

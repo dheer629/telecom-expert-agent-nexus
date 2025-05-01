@@ -10,9 +10,10 @@ import { DocumentContentExtractor } from '@/utils/DocumentContentExtractor';
 import UploadZone from './document/UploadZone';
 import FileList from './document/FileList';
 import ProcessedFilesList from './document/ProcessedFilesList';
+import { DocumentFile, ProcessingStatus } from '@/types/DocumentTypes';
 
 const DocumentUploader = () => {
-  const [files, setFiles] = useState<File[]>([]);
+  const [files, setFiles] = useState<DocumentFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const [processedDocs, setProcessedDocs] = useState<string[]>([]);
@@ -21,7 +22,7 @@ const DocumentUploader = () => {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      const newFiles = Array.from(e.target.files);
+      const newFiles = Array.from(e.target.files) as DocumentFile[];
       setFiles(prev => [...prev, ...newFiles]);
     }
   };

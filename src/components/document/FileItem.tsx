@@ -3,9 +3,10 @@ import { FileText, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { formatFileSize } from '@/utils/helpers';
+import { DocumentFile } from '@/types/DocumentTypes';
 
 interface FileItemProps {
-  file: File;
+  file: DocumentFile;
   progress?: number;
   isUploading: boolean;
   onRemove: () => void;

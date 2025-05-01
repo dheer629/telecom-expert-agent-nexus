@@ -1,8 +1,9 @@
 
 import { extractTextFromFile } from './helpers';
+import { DocumentFile, ExtractedContent, DocumentExtractionResult } from '@/types/DocumentTypes';
 
 export class DocumentContentExtractor {
-  static async extractContent(file: File): Promise<string> {
+  static async extractContent(file: DocumentFile): Promise<string> {
     const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
     
     try {
@@ -33,6 +34,51 @@ export class DocumentContentExtractor {
     } catch (error) {
       console.error(`Error extracting content from ${file.name}:`, error);
       return `Error processing ${file.name}. The file may be corrupted or in an unsupported format.`;
+    }
+  }
+
+  static async extractContentWithMetadata(file: DocumentFile): Promise<DocumentExtractionResult> {
+    try {
+      const text = await this.extractContent(file);
+      const startTime = Date.now();
+      
+      // Simulate metadata extraction
+      await new Promise(r => setTimeout(r, 300));
+      
+      const content: ExtractedContent = {
+        text,
+        metadata: {
+          pageCount: Math.floor(Math.random() * 10) + 1,
+          wordCount: Math.floor(Math.random() * 5000) + 500,
+          author: "Sample Author",
+          creationDate: new Date().toISOString(),
+          title: file.name.split('.')[0]
+        },
+        sections: [
+          {
+            title: "Introduction",
+            content: text.substring(0, 200),
+            level: 1
+          },
+          {
+            title: "Technical Details",
+            content: text.substring(200, 400),
+            level: 2
+          }
+        ]
+      };
+      
+      return {
+        success: true,
+        content,
+        processingTime: Date.now() - startTime
+      };
+    } catch (error) {
+      console.error(`Error extracting content from ${file.name}:`, error);
+      return {
+        success: false,
+        error: `Failed to process ${file.name}: ${error}`
+      };
     }
   }
 }

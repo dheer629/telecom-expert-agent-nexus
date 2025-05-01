@@ -5,14 +5,8 @@ export interface ChatMessage {
   timestamp?: string;
 }
 
-export interface DocumentMetadata {
-  id: string;
-  file_name: string;
-  user_id: string;
-  upload_time: string;
-  file_size: number;
-  chunk_count: number;
-}
+// Export the document types from DocumentTypes.ts
+export * from './DocumentTypes';
 
 export type OperationMode = 
   | 'Telecom Expert Chat'

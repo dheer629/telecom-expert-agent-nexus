@@ -1,5 +1,6 @@
 
 import { FilePlus } from 'lucide-react';
+import { ACCEPTED_FILE_TYPES } from '@/types/DocumentTypes';
 
 interface UploadZoneProps {
   onClick: () => void;
@@ -16,7 +17,7 @@ const UploadZone = ({ onClick }: UploadZoneProps) => {
         type="file"
         className="hidden"
         multiple
-        accept=".docx,.doc,.pdf,.xlsx,.xlsm,.txt"
+        accept={ACCEPTED_FILE_TYPES.join(',')}
       />
       <FilePlus className="mx-auto h-12 w-12 text-gray-400" />
       <p className="mt-2 text-sm text-gray-500">
