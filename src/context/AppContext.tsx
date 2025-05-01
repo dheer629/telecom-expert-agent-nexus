@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { AppState, ChatMessage, OperationMode, User } from '@/types';
 
@@ -10,6 +9,7 @@ interface AppContextProps extends AppState {
   addAttachment: (key: string) => void;
   setOperationMode: (mode: OperationMode) => void;
   clearChatHistory: () => void;
+  clearDocuments: () => void;
 }
 
 const initialState: AppState = {
@@ -46,14 +46,29 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('telecomAppState', JSON.stringify({
       authenticated: state.authenticated,
       user: state.user,
+      operationMode: state.operationMode,
     }));
-  }, [state.authenticated, state.user]);
+  }, [state.authenticated, state.user, state.operationMode]);
 
   const addMessage = (message: ChatMessage) => {
-    setState((prev) => ({
-      ...prev,
-      chatHistory: [...prev.chatHistory, message],
-    }));
+    setState((prev) => {
+      // If this is updating an existing assistant message, replace it
+      if (message.role === 'assistant' && prev.chatHistory.length > 0 && 
+          prev.chatHistory[prev.chatHistory.length - 1].role === 'assistant') {
+        const updatedHistory = [...prev.chatHistory];
+        updatedHistory[updatedHistory.length - 1] = message;
+        return {
+          ...prev,
+          chatHistory: updatedHistory,
+        };
+      }
+      
+      // Otherwise add as a new message
+      return {
+        ...prev,
+        chatHistory: [...prev.chatHistory, message],
+      };
+    });
   };
 
   const setAuthenticated = (value: boolean) => {
@@ -71,6 +86,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const addDocChunk = (chunk: string) => {
+    console.log("Adding document chunk:", chunk.substring(0, 30) + "...");
     setState((prev) => ({
       ...prev,
       chatDocs: [...prev.chatDocs, chunk],
@@ -97,6 +113,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       chatHistory: [],
     }));
   };
+  
+  const clearDocuments = () => {
+    setState((prev) => ({
+      ...prev,
+      chatDocs: [],
+      chatAttachments: {},
+    }));
+  };
 
   return (
     <AppContext.Provider
@@ -109,6 +133,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         addAttachment,
         setOperationMode,
         clearChatHistory,
+        clearDocuments,
       }}
     >
       {children}

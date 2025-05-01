@@ -80,6 +80,30 @@ export const simulateTyping = (
   });
 };
 
+export const findRelevantDocContent = (docs: string[], query: string): string | null => {
+  if (docs.length === 0) return null;
+  
+  // Simple keyword matching for this demo
+  // In a real app, this would use embeddings, vector search, etc.
+  const keywords = query.toLowerCase().split(' ').filter(word => word.length > 3);
+  
+  for (const doc of docs) {
+    const docLower = doc.toLowerCase();
+    for (const keyword of keywords) {
+      if (docLower.includes(keyword)) {
+        // Find a relevant section containing the keyword
+        const keywordIndex = docLower.indexOf(keyword);
+        const startIndex = Math.max(0, keywordIndex - 50);
+        const endIndex = Math.min(doc.length, keywordIndex + 150);
+        return doc.substring(startIndex, endIndex) + "...";
+      }
+    }
+  }
+  
+  // If no direct keyword matches, return the first part of the first document
+  return docs[0].substring(0, 200) + "...";
+};
+
 export const modelOptions = [
   {
     name: "mistralai/Mixtral-8x22B-Instruct-v0.1",

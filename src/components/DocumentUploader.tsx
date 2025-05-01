@@ -12,7 +12,8 @@ const DocumentUploader = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
-  const { addDocChunk, addAttachment } = useApp();
+  const [processedDocs, setProcessedDocs] = useState<string[]>([]);
+  const { addDocChunk, addAttachment, chatDocs } = useApp();
   const { toast } = useToast();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -24,6 +25,42 @@ const DocumentUploader = () => {
 
   const removeFile = (index: number) => {
     setFiles(prev => prev.filter((_, i) => i !== index));
+  };
+  
+  const extractDocumentContent = async (file: File): Promise<string> => {
+    const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
+    
+    // In a real app, different extractors would be used for different file types
+    // For this demo, we'll simulate extraction based on file type
+    try {
+      switch (fileExtension) {
+        case 'txt':
+          return await extractTextFromFile(file);
+          
+        case 'docx':
+        case 'doc':
+          // Simulate DOCX content extraction
+          await new Promise(r => setTimeout(r, 500)); // Simulate processing time
+          return `Document content extracted from ${file.name}: This is simulated content from ${file.name} that would be extracted using appropriate document parsing libraries. It contains information about telecom network architecture, 5G deployment strategies, and optimization techniques for modern telecommunications infrastructure.`;
+          
+        case 'pdf':
+          // Simulate PDF content extraction
+          await new Promise(r => setTimeout(r, 800)); // Simulate processing time
+          return `PDF content extracted from ${file.name}: This PDF document discusses telecom protocols, network slicing implementation details, and security considerations for telecom infrastructure. The document includes sections on latency optimization, bandwidth management, and service level agreements for enterprise telecom deployments.`;
+          
+        case 'xlsx':
+        case 'xlsm':
+          // Simulate Excel content extraction
+          await new Promise(r => setTimeout(r, 600)); // Simulate processing time
+          return `Spreadsheet data extracted from ${file.name}: This spreadsheet contains technical specifications for telecom equipment, performance metrics for different network configurations, and comparative analysis of various deployment scenarios. Key metrics include latency, throughput, and reliability figures for different architecture options.`;
+          
+        default:
+          return `Unable to extract content from ${file.name} due to unsupported format. The system has registered this file but cannot process its contents for knowledge enhancement.`;
+      }
+    } catch (error) {
+      console.error(`Error extracting content from ${file.name}:`, error);
+      return `Error processing ${file.name}. The file may be corrupted or in an unsupported format.`;
+    }
   };
 
   const handleUpload = async () => {
@@ -37,6 +74,7 @@ const DocumentUploader = () => {
     }
 
     setIsUploading(true);
+    setProcessedDocs([]);
     
     const initialProgress = files.reduce((acc, file) => {
       acc[file.name] = 0;
@@ -53,24 +91,22 @@ const DocumentUploader = () => {
             ...prev,
             [file.name]: i,
           }));
-          await new Promise(r => setTimeout(r, 100)); // Small delay for visual effect
+          await new Promise(r => setTimeout(r, 50)); // Small delay for visual effect
         }
         
-        // In a real app, this would process and store the file
-        // For this demo, we'll just extract text from text files
-        const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
+        // Extract content from the file
+        const content = await extractDocumentContent(file);
+        console.log(`Extracted content from ${file.name}:`, content.substring(0, 100) + '...');
         
-        if (fileExtension === 'txt') {
-          const text = await extractTextFromFile(file);
-          addDocChunk(text);
-        } else {
-          // For other file types, we'll just simulate success
-          console.log(`Processing file: ${file.name}`);
-        }
+        // Add the extracted content to the context
+        addDocChunk(content);
         
         // Add to processed attachments
         const fileKey = `${file.name}_${file.size}`;
         addAttachment(fileKey);
+        
+        // Add to processed docs list for display
+        setProcessedDocs(prev => [...prev, file.name]);
         
         toast({
           title: 'File processed successfully',
@@ -99,6 +135,11 @@ const DocumentUploader = () => {
         </CardTitle>
         <CardDescription>
           Upload documents to enhance the conversation context
+          {chatDocs.length > 0 && (
+            <span className="block text-green-600 text-xs mt-1">
+              {chatDocs.length} document{chatDocs.length !== 1 ? 's' : ''} in context
+            </span>
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -151,6 +192,20 @@ const DocumentUploader = () => {
                         <X className="h-4 w-4" />
                       </Button>
                     )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          
+          {processedDocs.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium text-green-600">Recently Processed</h4>
+              <ul className="space-y-1">
+                {processedDocs.map((docName, index) => (
+                  <li key={index} className="flex items-center text-sm text-green-600">
+                    <Check className="w-4 h-4 mr-2" />
+                    <span className="truncate">{docName}</span>
                   </li>
                 ))}
               </ul>
