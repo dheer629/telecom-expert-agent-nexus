@@ -5,11 +5,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { createUserMessage, createAssistantMessage } from '@/utils/helpers';
 import { ResponseGenerator } from '@/utils/ResponseGenerator';
+import { Logger } from '@/utils/LoggingService';
 
 // Import our components
 import MessageList from './chat/MessageList';
 import MessageInput from './chat/MessageInput';
 import ChatControls from './chat/ChatControls';
+import LogDialog from './logging/LogDialog';
 
 const ChatInterface = () => {
   const [isTyping, setIsTyping] = useState(false);
@@ -18,6 +20,9 @@ const ChatInterface = () => {
   const { toast } = useToast();
 
   const generateResponse = async (userQuery: string) => {
+    // Log the user query
+    Logger.info("User query received", { query: userQuery });
+    
     // Add user message to chat
     addMessage(createUserMessage(userQuery));
     
@@ -48,6 +53,8 @@ const ChatInterface = () => {
 
   const handleContinueAnswer = async () => {
     if (chatHistory.length === 0 || isTyping) return;
+    
+    Logger.info("Continue answer requested");
     
     toast({
       title: 'Continuing answer',
@@ -87,12 +94,16 @@ const ChatInterface = () => {
             setSearchEnabled={setSearchEnabled}
           />
           
-          <ChatControls 
-            onContinueAnswer={handleContinueAnswer}
-            onSaveTranscript={() => {}} // This will be replaced by the implementation in ChatControls
-            chatHistory={chatHistory}
-            isTyping={isTyping}
-          />
+          <div className="flex justify-between items-center mt-2">
+            <LogDialog />
+            
+            <ChatControls 
+              onContinueAnswer={handleContinueAnswer}
+              onSaveTranscript={() => {}} // This will be replaced by the implementation in ChatControls
+              chatHistory={chatHistory}
+              isTyping={isTyping}
+            />
+          </div>
         </CardContent>
       </Card>
     </div>

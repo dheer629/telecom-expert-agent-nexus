@@ -10,17 +10,20 @@ import { Checkbox } from '@/components/ui/checkbox';
 import DocumentUploader from './DocumentUploader';
 import ChatBubble from './ChatBubble';
 import { createUserMessage, createAssistantMessage, simulateTyping } from '@/utils/helpers';
+import { Logger } from '@/utils/LoggingService';
+import LogDialog from './logging/LogDialog';
 
 const DeepResearchMode = () => {
   const [query, setQuery] = useState('');
   const [isResearching, setIsResearching] = useState(false);
   const [searchEnabled, setSearchEnabled] = useState(true);
-  const { addMessage } = useApp();
+  const { addMessage, chatHistory } = useApp();
   const { toast } = useToast();
 
   const handleResearch = async () => {
     if (!query.trim() || isResearching) return;
     
+    Logger.info("Deep research query received", { query });
     setIsResearching(true);
     const userMessage = createUserMessage(query);
     addMessage(userMessage);
@@ -61,6 +64,8 @@ ACTION PLANS:
    - Identify specific use cases that benefit from 5G capabilities
 `;
 
+    Logger.debug("Research response generated", { responseLength: researchResponse.length });
+    
     let currentText = '';
     const updateAssistantResponse = (text: string) => {
       currentText = text;
@@ -73,7 +78,12 @@ ACTION PLANS:
     addMessage(createAssistantMessage(''));
     
     // Simulate typing effect
-    await simulateTyping(researchResponse, updateAssistantResponse, 5);
+    try {
+      await simulateTyping(researchResponse, updateAssistantResponse, 5);
+      Logger.info("Research response delivered successfully");
+    } catch (error) {
+      Logger.error("Error in typing simulation", error);
+    }
     
     setIsResearching(false);
     setQuery('');
@@ -121,18 +131,22 @@ ACTION PLANS:
               </div>
             </div>
 
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="enable-search"
-                checked={searchEnabled}
-                onCheckedChange={(checked) => setSearchEnabled(checked as boolean)}
-              />
-              <label
-                htmlFor="enable-search"
-                className="text-sm font-medium leading-none"
-              >
-                Enable Internet Search
-              </label>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="enable-search"
+                  checked={searchEnabled}
+                  onCheckedChange={(checked) => setSearchEnabled(checked as boolean)}
+                />
+                <label
+                  htmlFor="enable-search"
+                  className="text-sm font-medium leading-none"
+                >
+                  Enable Internet Search
+                </label>
+              </div>
+              
+              <LogDialog />
             </div>
           </div>
         </CardContent>
@@ -146,7 +160,9 @@ ACTION PLANS:
           Research Results
         </h3>
         <div className="space-y-4 max-h-[500px] overflow-y-auto p-2">
-          {/* This will render chat bubbles like the ChatInterface component */}
+          {chatHistory.map((message, index) => (
+            <ChatBubble key={index} message={message} />
+          ))}
         </div>
       </div>
     </div>

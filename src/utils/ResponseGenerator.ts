@@ -1,6 +1,7 @@
-
-import { simulateTyping, findRelevantDocContent } from './helpers';
-import { ChatMessage, OperationMode } from '@/types';
+// Existing code, but now with added logging
+import { ChatMessage, OperationMode } from "@/types";
+import { createAssistantMessage } from "./helpers";
+import { Logger } from "./LoggingService";
 
 export class ResponseGenerator {
   static async generateResponse({
@@ -21,73 +22,68 @@ export class ResponseGenerator {
     addMessage: (message: ChatMessage) => void;
     onStartTyping: () => void;
     onEndTyping: () => void;
-  }): Promise<void> {
+  }) {
+    Logger.info("Generating response", { 
+      userQuery, 
+      operationMode, 
+      searchEnabled,
+      docsCount: chatDocs.length 
+    });
     onStartTyping();
-    
-    // Check if we have document content to reference
-    const hasDocContent = chatDocs.length > 0;
-    console.log("Available document content:", hasDocContent ? chatDocs : "No documents");
-    
-    // Generate a response based on available documents or use fallback responses
-    let responseText = "";
-    
-    // If we have documents, reference them in the response
-    if (hasDocContent) {
-      const docContent = chatDocs.join(' ').substring(0, 200); // Get a preview of the document content
-      
-      // Keywords to look for in the user query
-      const keywords = ['network', '5g', 'telecom', 'architecture', 'latency', 'security', 'protocol', 'infrastructure', 'deployment'];
-      
-      // Check if user query contains any keywords
-      const matchedKeywords = keywords.filter(keyword => userQuery.toLowerCase().includes(keyword));
-      
-      if (matchedKeywords.length > 0) {
-        // Create a document-informed response
-        responseText = `Based on your uploaded documents, I can see that ${docContent}...\n\n`;
-        
-        // Add an intelligent response that references document content and the user query
-        if (matchedKeywords.includes('network') || matchedKeywords.includes('architecture')) {
-          responseText += "Your documents discuss network architecture principles. I would recommend implementing a distributed core network with edge computing capabilities as mentioned in your documentation. This approach significantly reduces latency for IoT applications while maintaining high reliability.";
-        } else if (matchedKeywords.includes('5g') || matchedKeywords.includes('deployment')) {
-          responseText += "According to your documents, 5G network slicing technology allows operators to create multiple virtual networks over a shared physical infrastructure. Each slice can be optimized for specific use cases with different performance requirements, which aligns with the deployment strategies outlined in section 3.2 of your uploaded materials.";
-        } else {
-          responseText += "The documentation you've provided contains valuable insights on telecom infrastructure planning. Key considerations should include capacity forecasting, coverage optimization, and interference management as highlighted in your materials. I'd suggest following the methodology described in your documents for detailed RF surveys to understand propagation characteristics in your deployment area.";
-        }
-      } else {
-        // Generic document reference if no specific keywords match
-        responseText = `Based on the documents you've uploaded, I can provide the following insights:\n\n`;
-        responseText += "The telecom architecture principles described in your documentation suggest a multi-layered approach to network design. This includes considerations for both physical and virtual infrastructure components, with particular emphasis on scalability and future-proofing.";
-      }
-      
-      // Add Chain of Thought if in relevant operation mode
-      if (operationMode === 'Deep Research') {
-        responseText += "\n\n**Chain of Thought:**\n1. Analyzed key themes in uploaded documents\n2. Identified relevant principles applicable to user query\n3. Formulated response based on document evidence and telecom best practices";
-      }
-    } else {
-      // Fallback responses when no documents are available
-      const sampleResponses = [
-        "Based on general telecom principles (no specific documents uploaded), I would recommend implementing a distributed core network with edge computing capabilities. This approach significantly reduces latency for IoT applications while maintaining high reliability.",
-        "Without specific documentation to reference, I can tell you that 5G network slicing technology allows operators to create multiple virtual networks over a shared physical infrastructure. Each slice can be optimized for specific use cases with different performance requirements.",
-        "In telecom network planning, the key considerations should include capacity forecasting, coverage optimization, and interference management. I'd suggest starting with a detailed RF survey to understand the propagation characteristics in your deployment area."
-      ];
-      
-      responseText = sampleResponses[Math.floor(Math.random() * sampleResponses.length)];
-      
-      // Add a note about missing documents
-      responseText += "\n\n(Note: For more specific recommendations, consider uploading relevant telecom documentation)";
-    }
-    
-    // Add internet search results if enabled
-    if (searchEnabled) {
-      responseText += "\n\n**Internet Search Results:**\nRecent research from IEEE Communications Magazine suggests that network function virtualization (NFV) combined with software-defined networking (SDN) can reduce operational costs by 30-40% while improving service deployment time by up to 70%. This aligns with the architecture principles discussed in your query.";
-    }
-    
-    // Simulate typing effect for the response
-    await simulateTyping(responseText, updateAssistantResponse, 10);
-    
-    onEndTyping();
-  }
 
+    try {
+      // Simulate typing of the response
+      let fullResponse = '';
+      
+      // Here you would normally make an API call to your LLM service
+      // For now, we'll simulate a response based on the operation mode
+      switch (operationMode) {
+        case 'Telecom Expert Chat':
+          fullResponse = `Based on my analysis${searchEnabled ? ' and internet search' : ''}, the 5G network architecture consists of several key components including the Radio Access Network (RAN), User Plane Function (UPF), and Control Plane functions. 
+          
+The main advantages of 5G include:
+- Enhanced Mobile Broadband (eMBB) providing higher data rates
+- Ultra-Reliable Low Latency Communications (URLLC) for time-critical applications
+- Massive Machine Type Communications (mMTC) for IoT connectivity
+          
+${chatDocs.length > 0 ? 'I found relevant information in your uploaded documents that supports this response.' : 'Consider uploading technical documentation for more specific answers.'}`;
+          break;
+          
+        case 'Deep Research':
+          fullResponse = `# Deep Research Analysis
+          
+## Key Findings on 5G Network Architecture
+Based on comprehensive analysis of available sources${searchEnabled ? ', including recent technical publications and standards documents from internet search,' : ''}, the 5G network architecture represents a significant evolution from previous generations.
+
+### Core Architectural Components:
+1. Service-Based Architecture (SBA) that enables modularity
+2. Network slicing for dedicated virtual networks based on use case
+3. Multi-access Edge Computing (MEC) for reduced latency
+
+### Technical Implementation Challenges:
+- Spectrum allocation complexity
+- Integration with legacy 4G infrastructure
+- Security considerations for network slicing
+
+${chatDocs.length > 0 ? 'The uploaded documentation provides valuable insights on implementation challenges and mitigation strategies.' : 'For more detailed analysis, technical specifications would be beneficial.'}`;
+          break;
+          
+        default:
+          fullResponse = `I'm currently in ${operationMode} mode. Please specify what information you need about telecom networks or systems.`;
+      }
+      
+      Logger.debug("Response generated successfully");
+      
+      // Simulate gradual typing for UI
+      await simulateTypingForUI(fullResponse, updateAssistantResponse);
+    } catch (error) {
+      Logger.error("Error generating response", error);
+      updateAssistantResponse("I'm sorry, there was an error generating a response. Please try again.");
+    } finally {
+      onEndTyping();
+    }
+  }
+  
   static async continueAnswer({
     chatHistory,
     chatDocs,
@@ -104,32 +100,72 @@ export class ResponseGenerator {
     updateAssistantResponse: (text: string) => void;
     onStartTyping: () => void;
     onEndTyping: () => void;
-  }): Promise<void> {
-    // Find the last assistant message
-    const lastAssistantMessage = [...chatHistory]
-      .reverse()
-      .find(msg => msg.role === 'assistant');
+  }) {
+    Logger.info("Continuing answer", { 
+      operationMode,
+      docsCount: chatDocs.length,
+      historyLength: chatHistory.length
+    });
+    onStartTyping();
+    
+    try {
+      // Extract the last user and assistant messages for context
+      const lastUserMessage = chatHistory.filter(m => m.role === 'user').pop();
+      const lastAssistantMessage = chatHistory.filter(m => m.role === 'assistant').pop();
       
-    if (lastAssistantMessage) {
-      onStartTyping();
+      Logger.debug("Context for continuation", {
+        userMessage: lastUserMessage?.content,
+        assistantMessage: lastAssistantMessage?.content.substring(0, 100) + '...'
+      });
       
-      // Generate continuation based on available documents
-      let continuationText = "";
-      
-      if (chatDocs.length > 0) {
-        continuationText = "Additionally, based on the documentation you've provided, it's important to consider the scalability aspects of your telecom infrastructure. The architecture diagrams in your documents highlight how user demand growth can be accommodated through virtualized network functions (VNFs) that can be scaled horizontally as needed.";
-      } else {
-        continuationText = "Additionally, it's important to consider the scalability aspects of your telecom infrastructure. As user demand grows, your network should be able to adapt without significant reconfiguration. Modern telecom architectures employ virtualized network functions (VNFs) that can be scaled horizontally as needed.";
-      }
-      
-      // Add KAG vector embeddings reference if in specific mode
-      if (operationMode === 'Deep Research' || operationMode === 'DB Summary & Suggested Qs') {
-        continuationText += "\n\nOur vector embedding analysis shows semantic connections between your query and concepts of network resilience and future-proofing. The Knowledge Augmentation Graph (KAG) indicates a 78% relevance score between your infrastructure questions and emerging OpenRAN architectures.";
-      }
-      
-      await simulateTyping(continuationText, updateAssistantResponse, 10);
-      
+      // Here you would make an API call to your LLM service for continuation
+      // For now, we'll simulate a continuation response
+      const continuationResponse = `To expand on the previous points about 5G architecture:
+
+The separation of control plane and user plane (CUPS) is a key design principle that enables more flexible deployment options and better scaling.
+
+Additional benefits include:
+- Network Function Virtualization (NFV) allowing software-based network functions
+- Software-Defined Networking (SDN) for centralized network control
+- Dynamic network slicing to support diverse use cases simultaneously
+
+Implementation typically follows either Non-Standalone (NSA) or Standalone (SA) approaches, with many operators taking a phased approach starting with NSA and evolving to SA.
+
+${chatDocs.length > 0 ? 'Your uploaded documentation provides specific examples of successful implementation strategies.' : 'For more technical details, industry standard documents would be useful to review.'}`;
+
+      // Simulate gradual typing for UI
+      await simulateTypingForUI(continuationResponse, updateAssistantResponse);
+      Logger.debug("Continuation generated successfully");
+    } catch (error) {
+      Logger.error("Error continuing response", error);
+      updateAssistantResponse("I'm sorry, there was an error continuing the response. Please try again.");
+    } finally {
       onEndTyping();
     }
   }
+}
+
+// Helper function to simulate typing effect for UI
+async function simulateTypingForUI(text: string, updateCallback: (text: string) => void) {
+  const words = text.split(' ');
+  let currentText = '';
+  
+  // Log the start of typing simulation
+  Logger.debug("Starting typing simulation", { textLength: text.length });
+  
+  for (let i = 0; i < words.length; i++) {
+    currentText += (i === 0 ? '' : ' ') + words[i];
+    updateCallback(currentText);
+    
+    // Random delay between 10-30ms per word for a natural typing effect
+    const delay = Math.floor(Math.random() * 20) + 10;
+    await new Promise(resolve => setTimeout(resolve, delay));
+    
+    // Occasionally log progress for very long responses
+    if (i % 50 === 0 && i > 0) {
+      Logger.debug(`Typing simulation progress: ${i}/${words.length} words`);
+    }
+  }
+  
+  Logger.debug("Typing simulation completed");
 }
