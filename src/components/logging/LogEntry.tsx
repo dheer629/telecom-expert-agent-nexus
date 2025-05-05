@@ -26,7 +26,11 @@ const LogEntry = ({ entry }: LogEntryProps) => {
   };
   
   const formatTime = (date: Date) => {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3 });
+    // Format time as HH:MM:SS without using the fractionalSecondDigits property
+    const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    // Manually add milliseconds
+    const ms = date.getMilliseconds().toString().padStart(3, '0');
+    return `${timeStr}.${ms}`;
   };
   
   const getIcon = (level: string) => {
