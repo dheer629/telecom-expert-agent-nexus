@@ -20,17 +20,23 @@ const LogDialog = () => {
         <Button 
           variant="outline" 
           size="sm" 
-          className="gap-2"
+          className="gap-2 hover:bg-telecom-primary/10 border-telecom-primary/20"
+          title="View system logs and API calls"
         >
-          <Terminal className="h-4 w-4" />
+          <Terminal className="h-4 w-4 text-telecom-primary" />
           System Logs
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-4xl">
-        <DialogHeader>
-          <DialogTitle>System Logs</DialogTitle>
+      <DialogContent className="sm:max-w-5xl max-h-[80vh] overflow-hidden flex flex-col">
+        <DialogHeader className="pb-2">
+          <DialogTitle className="flex items-center">
+            <Terminal className="h-5 w-5 mr-2 text-telecom-primary" />
+            System Logs & API Monitoring
+          </DialogTitle>
         </DialogHeader>
-        <LogPanel />
+        <div className="flex-grow overflow-hidden">
+          <LogPanel />
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -54,6 +54,22 @@ class LoggingService {
     this.log('debug', message, details);
   }
   
+  public apiCall(method: string, endpoint: string, params?: any, response?: any, error?: any) {
+    const level = error ? 'error' : 'info';
+    const message = error 
+      ? `API ${method} to ${endpoint} failed` 
+      : `API ${method} to ${endpoint} completed`;
+      
+    this.log(level, message, {
+      method,
+      endpoint,
+      params,
+      response: response || null,
+      error: error || null,
+      timestamp: new Date().toISOString()
+    });
+  }
+  
   public getLogs(): LogEntry[] {
     return [...this.logs];
   }

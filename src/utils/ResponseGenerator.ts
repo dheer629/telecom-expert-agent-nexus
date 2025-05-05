@@ -29,6 +29,15 @@ export class ResponseGenerator {
       searchEnabled,
       docsCount: chatDocs.length 
     });
+    
+    // Log the API call attempt
+    Logger.apiCall('POST', 'EricAI/generate', {
+      userQuery,
+      operationMode,
+      searchEnabled,
+      docsCount: chatDocs.length
+    });
+    
     onStartTyping();
 
     try {
@@ -37,6 +46,10 @@ export class ResponseGenerator {
       
       // Here you would normally make an API call to your LLM service
       // For now, we'll simulate a response based on the operation mode
+      
+      // Log that we're using a mock API response for now
+      Logger.debug("Using mock API response since EricAI integration is not functional");
+      
       switch (operationMode) {
         case 'Telecom Expert Chat':
           fullResponse = `Based on my analysis${searchEnabled ? ' and internet search' : ''}, the 5G network architecture consists of several key components including the Radio Access Network (RAN), User Plane Function (UPF), and Control Plane functions. 
@@ -73,11 +86,22 @@ ${chatDocs.length > 0 ? 'The uploaded documentation provides valuable insights o
       }
       
       Logger.debug("Response generated successfully");
+      // Log mock API success
+      Logger.apiCall('POST', 'EricAI/generate', 
+        { userQuery, operationMode }, 
+        { success: true, responseLength: fullResponse.length }
+      );
       
       // Simulate gradual typing for UI
       await simulateTypingForUI(fullResponse, updateAssistantResponse);
     } catch (error) {
       Logger.error("Error generating response", error);
+      // Log API failure with detailed error
+      Logger.apiCall('POST', 'EricAI/generate', 
+        { userQuery, operationMode }, 
+        null, 
+        { error: error instanceof Error ? error.message : String(error) }
+      );
       updateAssistantResponse("I'm sorry, there was an error generating a response. Please try again.");
     } finally {
       onEndTyping();
@@ -106,6 +130,14 @@ ${chatDocs.length > 0 ? 'The uploaded documentation provides valuable insights o
       docsCount: chatDocs.length,
       historyLength: chatHistory.length
     });
+    
+    // Log the API call attempt for continuation
+    Logger.apiCall('POST', 'EricAI/continue', {
+      operationMode,
+      docsCount: chatDocs.length,
+      historyLength: chatHistory.length
+    });
+    
     onStartTyping();
     
     try {
@@ -120,6 +152,8 @@ ${chatDocs.length > 0 ? 'The uploaded documentation provides valuable insights o
       
       // Here you would make an API call to your LLM service for continuation
       // For now, we'll simulate a continuation response
+      Logger.debug("Using mock API continuation response");
+      
       const continuationResponse = `To expand on the previous points about 5G architecture:
 
 The separation of control plane and user plane (CUPS) is a key design principle that enables more flexible deployment options and better scaling.
@@ -133,11 +167,23 @@ Implementation typically follows either Non-Standalone (NSA) or Standalone (SA) 
 
 ${chatDocs.length > 0 ? 'Your uploaded documentation provides specific examples of successful implementation strategies.' : 'For more technical details, industry standard documents would be useful to review.'}`;
 
+      // Log mock API success for continuation
+      Logger.apiCall('POST', 'EricAI/continue', 
+        { operationMode, historyLength: chatHistory.length }, 
+        { success: true, responseLength: continuationResponse.length }
+      );
+
       // Simulate gradual typing for UI
       await simulateTypingForUI(continuationResponse, updateAssistantResponse);
       Logger.debug("Continuation generated successfully");
     } catch (error) {
       Logger.error("Error continuing response", error);
+      // Log API failure with detailed error
+      Logger.apiCall('POST', 'EricAI/continue', 
+        { operationMode, historyLength: chatHistory.length }, 
+        null, 
+        { error: error instanceof Error ? error.message : String(error) }
+      );
       updateAssistantResponse("I'm sorry, there was an error continuing the response. Please try again.");
     } finally {
       onEndTyping();
