@@ -21,16 +21,18 @@ const MessageList = ({ messages }: MessageListProps) => {
 
   if (messages.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-gray-400">
-        <MessageIcon className="h-16 w-16 mb-4" />
-        <h3 className="text-lg font-medium">No messages yet</h3>
-        <p className="text-sm">Start a conversation with the Telecom Expert</p>
+      <div className="flex flex-col items-center justify-center h-full text-gray-400 p-8 bg-gray-50/50 rounded-lg border border-gray-100">
+        <MessageIcon className="h-20 w-20 mb-6 text-telecom-primary/40" />
+        <h3 className="text-xl font-medium text-telecom-secondary">No messages yet</h3>
+        <p className="text-sm text-gray-500 mt-2 max-w-md text-center">
+          Start a conversation with the Telecom Expert to get tailored insights and information
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+    <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-white to-telecom-light/10 rounded-lg border border-gray-100">
       {messages.map((msg, index) => (
         <ChatBubble key={index} message={msg} />
       ))}

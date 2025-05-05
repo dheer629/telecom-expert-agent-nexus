@@ -4,13 +4,12 @@ import { useApp } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { FileText, Check } from 'lucide-react';
-import { mockApiCall } from '@/utils/helpers';
+import { FileText, Check, Upload } from 'lucide-react';
 import { DocumentContentExtractor } from '@/utils/DocumentContentExtractor';
 import UploadZone from './document/UploadZone';
 import FileList from './document/FileList';
 import ProcessedFilesList from './document/ProcessedFilesList';
-import { DocumentFile, ProcessingStatus } from '@/types/DocumentTypes';
+import { DocumentFile } from '@/types/DocumentTypes';
 
 const DocumentUploader = () => {
   const [files, setFiles] = useState<DocumentFile[]>([]);
@@ -20,10 +19,22 @@ const DocumentUploader = () => {
   const { addDocChunk, addAttachment, chatDocs } = useApp();
   const { toast } = useToast();
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const newFiles = Array.from(e.target.files) as DocumentFile[];
-      setFiles(prev => [...prev, ...newFiles]);
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement> | React.DragEvent<HTMLDivElement>) => {
+    let newFiles: File[] = [];
+    
+    if ('dataTransfer' in e) {
+      // Handle drag and drop
+      if (e.dataTransfer.files) {
+        newFiles = Array.from(e.dataTransfer.files);
+      }
+    } else if (e.target.files) {
+      // Handle file input change
+      newFiles = Array.from(e.target.files);
+    }
+    
+    // Add files to state
+    if (newFiles.length > 0) {
+      setFiles(prev => [...prev, ...newFiles as DocumentFile[]]);
     }
   };
 
@@ -51,47 +62,49 @@ const DocumentUploader = () => {
     
     setUploadProgress(initialProgress);
     
-    for (const file of files) {
-      try {
-        // Simulate progress updates
-        for (let i = 0; i <= 100; i += 10) {
-          setUploadProgress(prev => ({
-            ...prev,
-            [file.name]: i,
-          }));
-          await new Promise(r => setTimeout(r, 50)); // Small delay for visual effect
+    try {
+      for (const file of files) {
+        try {
+          // Simulate progress updates
+          for (let i = 0; i <= 100; i += 10) {
+            setUploadProgress(prev => ({
+              ...prev,
+              [file.name]: i,
+            }));
+            await new Promise(r => setTimeout(r, 50)); // Small delay for visual effect
+          }
+          
+          // Extract content from the file
+          const content = await DocumentContentExtractor.extractContent(file);
+          console.log(`Extracted content from ${file.name}:`, content.substring(0, 100) + '...');
+          
+          // Add the extracted content to the context
+          addDocChunk(content);
+          
+          // Add to processed attachments
+          const fileKey = `${file.name}_${file.size}`;
+          addAttachment(fileKey);
+          
+          // Add to processed docs list for display
+          setProcessedDocs(prev => [...prev, file.name]);
+          
+          toast({
+            title: 'File processed successfully',
+            description: `${file.name} has been added to context`,
+          });
+        } catch (error) {
+          console.error('Error processing file:', error);
+          toast({
+            title: 'Error processing file',
+            description: `Failed to process ${file.name}`,
+            variant: 'destructive',
+          });
         }
-        
-        // Extract content from the file
-        const content = await DocumentContentExtractor.extractContent(file);
-        console.log(`Extracted content from ${file.name}:`, content.substring(0, 100) + '...');
-        
-        // Add the extracted content to the context
-        addDocChunk(content);
-        
-        // Add to processed attachments
-        const fileKey = `${file.name}_${file.size}`;
-        addAttachment(fileKey);
-        
-        // Add to processed docs list for display
-        setProcessedDocs(prev => [...prev, file.name]);
-        
-        toast({
-          title: 'File processed successfully',
-          description: `${file.name} has been added to context`,
-        });
-      } catch (error) {
-        console.error('Error processing file:', error);
-        toast({
-          title: 'Error processing file',
-          description: `Failed to process ${file.name}`,
-          variant: 'destructive',
-        });
       }
+    } finally {
+      setIsUploading(false);
+      setFiles([]);
     }
-    
-    setIsUploading(false);
-    setFiles([]);
   };
 
   const handleFileUploadClick = () => {
@@ -99,24 +112,27 @@ const DocumentUploader = () => {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg flex items-center">
+    <Card className="shadow-lg border-telecom-primary/10 bg-gradient-to-b from-white to-telecom-light/20">
+      <CardHeader className="border-b border-telecom-primary/10 bg-white/80">
+        <CardTitle className="text-lg flex items-center text-telecom-secondary">
           <FileText className="w-5 h-5 mr-2 text-telecom-primary" />
           Document Upload
         </CardTitle>
         <CardDescription>
           Upload documents to enhance the conversation context
           {chatDocs.length > 0 && (
-            <span className="block text-green-600 text-xs mt-1">
+            <span className="block text-green-600 text-xs mt-1 font-medium">
               {chatDocs.length} document{chatDocs.length !== 1 ? 's' : ''} in context
             </span>
           )}
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-5">
         <div className="flex flex-col space-y-4">
-          <UploadZone onClick={handleFileUploadClick} />
+          <UploadZone 
+            onClick={handleFileUploadClick} 
+            onDrop={handleFileChange}
+          />
           
           <input
             id="file-upload"
@@ -139,7 +155,7 @@ const DocumentUploader = () => {
           <Button
             onClick={handleUpload}
             disabled={isUploading || files.length === 0}
-            className="w-full"
+            className="w-full bg-telecom-primary hover:bg-telecom-secondary transition-all duration-300"
           >
             {isUploading ? (
               <>
@@ -151,7 +167,7 @@ const DocumentUploader = () => {
               </>
             ) : (
               <>
-                <Check className="mr-2 h-4 w-4" />
+                <Upload className="mr-2 h-4 w-4" />
                 Upload & Process
               </>
             )}

@@ -6,7 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { createUserMessage, createAssistantMessage } from '@/utils/helpers';
 import { ResponseGenerator } from '@/utils/ResponseGenerator';
 
-// Import our new components
+// Import our components
 import MessageList from './chat/MessageList';
 import MessageInput from './chat/MessageInput';
 import ChatControls from './chat/ChatControls';
@@ -73,10 +73,12 @@ const ChatInterface = () => {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-13rem)]">
-      <MessageList messages={chatHistory} />
+    <div className="flex flex-col h-[calc(100vh-13rem)] bg-white shadow-lg rounded-lg border border-telecom-primary/10 overflow-hidden">
+      <div className="flex-1 overflow-hidden">
+        <MessageList messages={chatHistory} />
+      </div>
       
-      <Card className="mt-4 border-t">
+      <Card className="border-t rounded-none border-telecom-primary/10 bg-white">
         <CardContent className="p-4">
           <MessageInput 
             onSendMessage={generateResponse} 
